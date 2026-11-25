@@ -127,3 +127,72 @@
       </div>
     </div>
   </div>
+  <script>
+    const sz = window.innerWidth < 600 ? 310 : 460;
+    const canvas = new fabric.Canvas('c', { width: sz, height: sz, preserveObjectStacking: true });
+    const s = sz / 460;
+    function switchTab(t, el) {
+      document.querySelectorAll('.rail-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('tab-ai').classList.toggle('hidden', t !== 'ai');
+      document.getElementById('tab-text').classList.toggle('hidden', t !== 'text');
+    }
+    function addText(str, size, bold) {
+      const t = new fabric.IText(str, { left: sz/2, top: sz/2, originX: 'center', originY: 'center', fontSize: Math.round(size*s), fontWeight: bold?'bold':'normal', fill: '#fff', textAlign: 'center', fontFamily: 'sans-serif' });
+      canvas.add(t); canvas.setActiveObject(t);
+    }
+    function addCTAButton(bg, txtCol) {
+      const box = new fabric.Rect({ width: 160*s, height: 38*s, fill: bg, rx: 19*s, ry: 19*s, originX: 'center', originY: 'center' });
+      const lbl = new fabric.Text('ORDER NOW →', { fontSize: Math.round(13*s), fontWeight: 'bold', fill: txtCol, originX: 'center', originY: 'center', fontFamily: 'sans-serif' });
+      canvas.add(new fabric.Group([box, lbl], { left: sz/2, top: sz - 48*s, originX: 'center', originY: 'center' }));
+    }
+    function drawPosterBase(brand, offer, sub, bgUrl, logoUrl) {
+      canvas.clear();
+      if (bgUrl) {
+        fabric.Image.fromURL(bgUrl, img => {
+          const sc = Math.max(sz/img.width, sz/img.height);
+          canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), { scaleX: sc, scaleY: sc, originX: 'center', originY: 'center', left: sz/2, top: sz/2 });
+        });
+        canvas.add(new fabric.Rect({ width: sz, height: sz, fill: 'rgba(0,0,0,0.42)', selectable: false }));
+      } else {
+        canvas.setBackgroundColor(new fabric.Gradient({ type: 'linear', coords: { x1:0, y1:0, x2:sz, y2:sz }, colorStops: [{ offset:0, color:'#311068' }, { offset:1, color:'#7d2ae8' }] }), canvas.renderAll.bind(canvas));
+      }
+      if (logoUrl) {
+        fabric.Image.fromURL(logoUrl, l => { l.scaleToWidth(66*s); l.set({ left: sz/2, top: 52*s, originX: 'center', originY: 'center' }); canvas.add(l); });
+      } else {
+        const ini = brand.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+        canvas.add(new fabric.Group([new fabric.Circle({ radius: 22*s, fill: '#fff', originX: 'center', originY: 'center' }), new fabric.Text(ini, { fontSize: Math.round(16*s), fontWeight: 'bold', fill: '#18191b', originX: 'center', originY: 'center', fontFamily: 'sans-serif' })], { left: sz/2, top: 52*s, originX: 'center', originY: 'center' }));
+      }
+      canvas.add(new fabric.IText(brand.toUpperCase(), { left: sz/2, top: 96*s, originX: 'center', fontSize: Math.round(14*s), fontWeight: 'bold', fill: '#facc15', fontFamily: 'sans-serif' }));
+      canvas.add(new fabric.IText(offer, { left: sz/2, top: sz*0.46, originX: 'center', originY: 'center', fontSize: Math.round(34*s), fontWeight: '900', fill: '#fff', textAlign: 'center', fontFamily: 'sans-serif' }));
+      canvas.add(new fabric.IText(sub, { left: sz/2, top: sz*0.64, originX: 'center', originY: 'center', fontSize: Math.round(15*s), fill: '#e5e7eb', textAlign: 'center', fontFamily: 'sans-serif' }));
+      addCTAButton('#10b981', '#ffffff');
+    }
+    async function runAIAgent() {
+      const key = document.getElementById('geminiKey').value.trim(), brand = document.getElementById('aiBrand').value.trim()||'My Brand', offer = document.getElementById('aiOffer').value.trim()||'SPECIAL OFFER', sub = document.getElementById('aiSub').value.trim()||'Order Now';
+      if (!key) { drawPosterBase(brand, offer, sub, null, null); document.getElementById('captionBox').innerText = `🚀 ${brand}: ${offer}! ${sub}.`; return; }
+      const btn = document.getElementById('genBtn'); btn.innerText = '⏳ AI Generating...'; btn.disabled = true;
+      try {
+        const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gemini_key: key, brand_name: brand, offer, sub_detail: sub }) });
+        const data = await res.json(); if (!res.ok) throw new Error(data.detail);
+        drawPosterBase(brand, data.headline||offer, sub, data.bg_image, data.logo_image); document.getElementById('captionBox').innerText = data.caption;
+      } catch (e) { alert('AI Error: ' + e.message); } finally { btn.innerText = '⚡ Generate Logo + Poster'; btn.disabled = false; }
+    }
+    function changeColor(c) { const o = canvas.getActiveObject(); if(o){ o.set('fill', c); canvas.renderAll(); } }
+    function changeSize(d) { const o = canvas.getActiveObject(); if(o && o.fontSize){ o.set('fontSize', Math.max(10, o.fontSize+d)); canvas.renderAll(); } }
+    function deleteObj() { const o = canvas.getActiveObject(); if(o) canvas.remove(o); }
+    function downloadPoster() { canvas.discardActiveObject().renderAll(); const a = document.createElement('a'); a.download = 'ad-poster.png'; a.href = canvas.toDataURL({ format: 'png', multiplier: 3 }); a.click(); }
+    function openAdModal() { canvas.discardActiveObject().renderAll(); document.getElementById('adPreviewImg').src = canvas.toDataURL({ format: 'png', multiplier: 1 }); document.getElementById('modalHeadline').value = document.getElementById('aiBrand').value+' - '+document.getElementById('aiOffer').value; document.getElementById('modalCaption').value = document.getElementById('captionBox').innerText; document.getElementById('adModal').classList.add('open'); }
+    function closeAdModal() { document.getElementById('adModal').classList.remove('open'); }
+    async function launchMetaAd() {
+      const btn = document.getElementById('launchBtn'); btn.innerText = '⏳ Launching...'; btn.disabled = true;
+      try {
+        const res = await fetch('/api/launch-ad', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ meta_token: document.getElementById('metaToken').value.trim(), ad_account_id: document.getElementById('adAccountId').value.trim(), page_id: document.getElementById('pageId').value.trim(), brand_name: document.getElementById('aiBrand').value.trim(), headline: document.getElementById('modalHeadline').value, caption: document.getElementById('modalCaption').value, daily_budget_inr: parseInt(document.getElementById('modalBudget').value)||500, website_url: document.getElementById('modalUrl').value.trim(), poster_base64: document.getElementById('adPreviewImg').src }) });
+        const data = await res.json(); if (!res.ok) throw new Error(data.detail);
+        alert('🎉 Meta Ad Created (PAUSED)! ID: ' + data.campaign_id); closeAdModal();
+      } catch (e) { alert('❌ Meta Error: ' + e.message); } finally { btn.innerText = '✅ Publish Ad'; btn.disabled = false; }
+    }
+    drawPosterBase('Urban Brew Cafe', 'BUY 1 GET 1 FREE', 'Fresh Coffee • Order Today', null, null);
+  </script>
+</body>
+</html>
