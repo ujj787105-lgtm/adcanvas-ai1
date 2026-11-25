@@ -49,3 +49,81 @@
     }
   </style>
 </head>
+<body>
+  <header class="topbar">
+    <div class="brand">🎨 AdCanvas AI</div>
+    <div class="top-actions">
+      <button class="btn btn-white" onclick="downloadPoster()">⬇️ PNG</button>
+      <button class="btn btn-run" onclick="openAdModal()">🚀 Run Ad</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <nav class="rail">
+      <div class="rail-item active" onclick="switchTab('ai', this)"><span>✨</span>AI Agent</div>
+      <div class="rail-item" onclick="switchTab('text', this)"><span>🔤</span>Text</div>
+    </nav>
+
+    <aside class="drawer">
+      <div id="tab-ai">
+        <h3>✨ AI Logo & Poster Agent</h3>
+        <label>Gemini API Key (Optional)</label>
+        <input id="geminiKey" type="password" placeholder="AIza... (Blank = Free Template)" />
+        <label>Brand Name</label>
+        <input id="aiBrand" type="text" value="Urban Brew Cafe" />
+        <label>Offer / Headline</label>
+        <input id="aiOffer" type="text" value="BUY 1 GET 1 FREE" />
+        <label>Sub-detail</label>
+        <input id="aiSub" type="text" value="Fresh Coffee • Order Today" />
+        <button id="genBtn" class="btn btn-primary" onclick="runAIAgent()">⚡ Generate Logo + Poster</button>
+        <div style="margin-top:10px; background:#18191b; padding:10px; border-radius:8px;">
+          <label style="color:#a78bfa;">Ad Caption:</label>
+          <p id="captionBox" style="font-size:11px; color:#d1d5db;">☕ Urban Brew Cafe par paayein BUY 1 GET 1 FREE!</p>
+        </div>
+      </div>
+
+      <div id="tab-text" class="hidden">
+        <h3>🔤 Add Elements</h3>
+        <button class="elem-btn" onclick="addText('50% OFF TODAY', 28, true)">+ Add Heading</button>
+        <button class="elem-btn" onclick="addText('Limited Time Deal', 16, false)">+ Add Subheading</button>
+        <button class="elem-btn" onclick="addCTAButton('#10b981', '#fff')">+ Add SHOP NOW Button</button>
+      </div>
+    </aside>
+
+    <main class="editor-area">
+      <div class="prop-bar">
+        <input type="color" value="#ffffff" onchange="changeColor(this.value)" style="width:26px;height:26px;border:none;cursor:pointer;">
+        <button class="prop-btn" onclick="changeSize(3)">A+</button>
+        <button class="prop-btn" onclick="changeSize(-3)">A-</button>
+        <button class="prop-btn" style="color:#dc2626;" onclick="deleteObj()">🗑️ Delete</button>
+      </div>
+      <div class="stage">
+        <div class="canvas-shadow"><canvas id="c"></canvas></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="adModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>📢 Launch Meta Ad</h3>
+        <button onclick="closeAdModal()" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div><img id="adPreviewImg" src="" /></div>
+        <div>
+          <label>Meta Access Token</label><input id="metaToken" type="password" placeholder="EAAB..." />
+          <label>Ad Account ID</label><input id="adAccountId" type="text" placeholder="act_123456" />
+          <label>Facebook Page ID</label><input id="pageId" type="text" placeholder="10293847..." />
+          <label>Ad Headline</label><input id="modalHeadline" type="text" />
+          <label>Ad Caption</label><textarea id="modalCaption" rows="2"></textarea>
+          <label>Daily Budget (INR ₹)</label><input id="modalBudget" type="number" value="500" />
+          <label>Website / WhatsApp Link</label><input id="modalUrl" type="text" value="https://wa.me/919999999999" />
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeAdModal()">Cancel</button>
+        <button id="launchBtn" class="btn btn-run" onclick="launchMetaAd()">✅ Publish Ad</button>
+      </div>
+    </div>
+  </div>
